@@ -1,14 +1,14 @@
 module.exports = [
     {
-        task: 'Create data tables',
+        task: 'Clean room',
         complete: true
     },
     {
-        task: 'Backend todo server',
+        task: 'Wash the dishes',
         complete: false
     },
     {
-        task: 'Frontend todo app',
+        task: 'Mow the lawn',
         complete: false
     }
 ];
