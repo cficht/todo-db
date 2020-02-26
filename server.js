@@ -5,8 +5,12 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
-const client = require('./lib/client');
+const pg = require('pg');
+// const client = require('./lib/client');
+
 // Initiate database connection
+const Client = pg.Client;
+const client = new Client(process.env.DATABASE_URL);
 client.connect();
 
 // Application Setup
@@ -16,15 +20,16 @@ app.use(morgan('dev')); // http logging
 app.use(cors()); // enable CORS request
 app.use(express.static('public')); // server files from /public folder
 app.use(express.json()); // enable reading incoming json data
-app.use(auth());
+app.use(express.urlencoded({ extended: true }));
+// app.use(auth());
 // API Routes
 
 // *** TODOS ***
 app.get('/api/todos', async (req, res) => {
-
     try {
         const result = await client.query(`
-            
+            SELECT todos.* FROM todos
+            ORDER BY id;       
         `);
 
         res.json(result.rows);
@@ -39,13 +44,14 @@ app.get('/api/todos', async (req, res) => {
 });
 
 app.post('/api/todos', async (req, res) => {
-    const todo = req.body;
-
     try {
         const result = await client.query(`
+            INSERT INTO todos (task, complete)
+            VALUES ($1, false)
+            RETURNING *;
             
         `,
-            [/* pass in data */]);
+        [req.body.task]);
 
         res.json(result.rows[0]);
     }
@@ -58,13 +64,13 @@ app.post('/api/todos', async (req, res) => {
 });
 
 app.put('/api/todos/:id', async (req, res) => {
-    const id = req.params.id;
-    const todo = req.body;
-
     try {
         const result = await client.query(`
-            
-        `, [/* pass in data */]);
+            UPDATE todos
+            SET complete=$1
+            WHERE id = $2
+            RETURNING *;
+        `, [req.body.complete, req.params.id]);
 
         res.json(result.rows[0]);
     }
@@ -77,13 +83,11 @@ app.put('/api/todos/:id', async (req, res) => {
 });
 
 app.delete('/api/todos/:id', async (req, res) => {
-    // get the id that was passed in the route:
-    const id = 0; // ???
-
     try {
         const result = await client.query(`
-         
-        `, [/* pass data */]);
+            DELETE FROM todos
+            WHERE todos.id=$1;        
+        `, [req.params.id]);
 
         res.json(result.rows[0]);
     }

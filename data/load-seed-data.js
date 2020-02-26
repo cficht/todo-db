@@ -1,10 +1,13 @@
-const client = require('../lib/client');
+require('dotenv').config();
+const pg = require('pg');
+const Client = pg.Client;
 // import our seed data:
 const todos = require('./todos');
 
 run();
 
 async function run() {
+    const client = new Client(process.env.DATABASE_URL);
 
     try {
         await client.connect();
