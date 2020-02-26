@@ -99,6 +99,10 @@ app.delete('/api/todos/:id', async (req, res) => {
     }
 });
 
+app.get('*', (req, res) => {
+    res.send('No todos are here...');
+});
+
 // Start the server
 app.listen(PORT, () => {
     console.log('server running on PORT', PORT);
