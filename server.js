@@ -22,15 +22,44 @@ app.use(express.static('public')); // server files from /public folder
 app.use(express.json()); // enable reading incoming json data
 app.use(express.urlencoded({ extended: true }));
 // app.use(auth());
-// API Routes
 
+// Auth Routes
+const createAuthRoutes = require('./lib/auth/create-auth-routes');
+
+const authRoutes = createAuthRoutes({
+    selectUser(email) {
+        return client.query(`
+            SELECT id, email, hash 
+            FROM users
+            WHERE email = $1;
+        `,
+        [email]
+        ).then(result => result.rows[0]);
+    },
+    insertUser(user, hash) {
+        return client.query(`
+            INSERT into users (email, hash)
+            VALUES ($1, $2)
+            RETURNING id, email;
+        `,
+        [user.email, hash]
+        ).then(result => result.rows[0]);
+    }
+});
+
+// before ensure auth, but after other middleware:
+app.use('/api/auth', authRoutes);
+const ensureAuth = require('./lib/auth/ensure-auth');
+app.use('/api', ensureAuth);
+
+// API Routes
 // *** TODOS ***
 app.get('/api/todos', async (req, res) => {
     try {
         const result = await client.query(`
-            SELECT todos.* FROM todos
+            SELECT todos.* FROM todos where user_id=$1
             ORDER BY id;       
-        `);
+        `, [req.userId]);
 
         res.json(result.rows);
     }
@@ -46,12 +75,12 @@ app.get('/api/todos', async (req, res) => {
 app.post('/api/todos', async (req, res) => {
     try {
         const result = await client.query(`
-            INSERT INTO todos (task, complete)
-            VALUES ($1, false)
+            INSERT INTO todos (task, complete, user_id)
+            VALUES ($1, $2, $3)
             RETURNING *;
             
         `,
-        [req.body.task]);
+        [req.body.task, false, req.userId]);
 
         res.json(result.rows[0]);
     }
